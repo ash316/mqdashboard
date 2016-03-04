@@ -20,6 +20,7 @@ public class Main extends Application {
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
 			DashboardController controller = loader.<DashboardController>getController();
 			controller.populateCombo();
+			controller.populateAMQTree();
 			primaryStage.setScene(scene);
 			primaryStage.show();
 		} catch(Exception e) {
