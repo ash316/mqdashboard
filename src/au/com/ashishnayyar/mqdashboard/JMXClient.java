@@ -1,5 +1,6 @@
 package au.com.ashishnayyar.mqdashboard;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,9 +8,12 @@ import java.util.List;
 import java.util.Set;
 
 import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
+import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import javax.management.openmbean.CompositeData;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -25,14 +29,6 @@ public class JMXClient {
 		ObjectName name = new ObjectName("org.apache.activemq:*");
         Set<ObjectName> amq = connection.queryNames(name,null);
         System.out.println("Total "+ amq.size());
-        /*connection.addNotificationListener(new ObjectName("org.apache.activemq:type=Broker,name=amq"), new NotificationListener() {
-			
-			@Override
-			public void handleNotification(Notification notification, Object handback) {
-				System.out.println("Notification Received.." + notification.getType());
-				
-			}
-		}, null, null);*/
         
         if(amq.size() > 0)  {
         	String bName = amq.iterator().next().getCanonicalName().split(",")[0];
@@ -54,6 +50,17 @@ public class JMXClient {
          }
 	}
 	
+	public List<String> getAllMessages(String queueName) {
+		try {
+			ObjectName objName = new ObjectName("org.apache.activemq:type=Broker,brokerName=amq,destinationType=Queue,destinationName="+queueName);
+			Set<ObjectInstance> instance = connection.queryMBeans(new ObjectName("org.apache.activemq:type=Broker,destinationType=Queue,destinationName="+queueName), null);
+			CompositeData allMessages[] = (CompositeData[])connection.invoke(objName, "browse", null, null);
+			System.out.println();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 	public void connect() {
 		try {
 			HashMap<String, String[]> env = new HashMap();

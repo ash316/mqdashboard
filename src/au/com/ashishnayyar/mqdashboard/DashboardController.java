@@ -75,7 +75,12 @@ public class DashboardController {
 		public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
 				TreeItem<String> newValue) {
 			TreeItem<String> selectedItem = newValue;
-            System.out.println("Selected Text : " + selectedItem);
+			
+			if(selectedItem != null) {
+				System.out.println("Selected Text : " + selectedItem.getValue());
+				client.getAllMessages(selectedItem.getValue());
+			}
+            
 			
 		}
 
