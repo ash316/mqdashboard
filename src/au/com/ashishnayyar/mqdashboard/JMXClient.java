@@ -1,6 +1,5 @@
 package au.com.ashishnayyar.mqdashboard;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -8,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 
 import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
@@ -50,13 +48,15 @@ public class JMXClient {
          }
 	}
 	
-	public List<String> getAllMessages(String queueName) {
+	public CompositeData[] getAllMessages(String queueName) {
 		try {
 			ObjectName objName = new ObjectName("org.apache.activemq:type=Broker,brokerName=amq,destinationType=Queue,destinationName="+queueName);
 			Set<ObjectInstance> instance = connection.queryMBeans(new ObjectName("org.apache.activemq:type=Broker,destinationType=Queue,destinationName="+queueName), null);
 			CompositeData allMessages[] = (CompositeData[])connection.invoke(objName, "browse", null, null);
-			System.out.println();
+			System.out.println(allMessages.length);
+			return allMessages;
 		} catch (Exception e) {
+			System.err.println(queueName + "Item not found in the JMX Tree");
 			e.printStackTrace();
 		}
 		return null;
