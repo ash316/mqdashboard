@@ -1,6 +1,5 @@
 package au.com.ashishnayyar.mqdashboard;
 
-import java.awt.ScrollPane;
 
 import javax.management.openmbean.CompositeData;
 
@@ -11,19 +10,21 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 
 public class DashboardController {
 	
@@ -32,10 +33,11 @@ public class DashboardController {
 	@FXML private VBox mainWindow;
 	@FXML private TableView<MessageDetails> messageTable;
 	@FXML private Label messageHeader;
-	@FXML private TableView<String> messageContents;
+	@FXML private Pane msgContents;
+	@FXML private Button purgeButton;
 	
-	private final ImageView queueIcon = new ImageView (new Image(getClass().getResourceAsStream("queue.png"))
-    );
+	private final ImageView queueIcon = new ImageView (new Image(getClass().getResourceAsStream("queue.png")));
+	
 	private JMXClient client = null;
 	
 	public DashboardController() {
@@ -71,15 +73,17 @@ public class DashboardController {
 		TreeItem<String> rootItem = new TreeItem<String> ("AMQ");
 		TreeItem<String> queues = new TreeItem<String> ("Queues");
 		TreeItem<String> topics = new TreeItem<String> ("Topics");
+		
 		rootItem.getChildren().add(queues);
 		rootItem.getChildren().add(topics);
+		
         rootItem.setExpanded(true);
         queues.setExpanded(true);
         
         for (JMXDetailsDO str : client.getQueues()) {
             TreeItem<String> item = new TreeItem<String>(str.getDestination());
             queues.getChildren().add(item);
-            item.getChildren().add(new TreeItem<String>("SIZE [" + str.getSize() + "]"));
+            //item.getChildren().add(new TreeItem<String>("SIZE [" + str.getSize() + "]"));
         }
         for (JMXDetailsDO str : client.getTopics()) {
             TreeItem<String> item = new TreeItem<String> (str.getDestination());            
@@ -96,7 +100,8 @@ public class DashboardController {
 				System.out.println("Selected Text : " + selectedItem.getValue());
 				CompositeData allMessages[] = client.getAllMessages(selectedItem.getValue());
 				ObservableList<MessageDetails> messages = FXCollections.observableArrayList();
-				messageHeader.setText("ALL MESSAGES ON : " + selectedItem.getValue());
+				messageHeader.setText("ALL MESSAGES ON : " + selectedItem.getValue() + " [SIZE : " + allMessages.length +"]");
+				
 				for(CompositeData currentMessage : allMessages) {
 					MessageDetails message = new MessageDetails();
 					message.setContents(currentMessage.get("Text").toString());
@@ -134,9 +139,21 @@ public class DashboardController {
 			((TableColumn)messageTable.getColumns().get(3)).setCellValueFactory(new PropertyValueFactory<MessageDetails, String>("priority"));
 		}
 		
+		msgContents.getChildren().clear();
 		messageTable.setItems(allMessages);
+		if(allMessages.size() > 0) {
+			purgeButton.setVisible(true);
+		} else {
+			purgeButton.setVisible(false);
+		}
 		messageTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+			TextArea messageContents = new TextArea(newSelection.getContents());
 			
+			messageContents.setEditable(false);
+			messageContents.setPrefWidth(msgContents.getPrefWidth());
+			messageContents.setPrefHeight(msgContents.getPrefHeight());
+			
+			msgContents.getChildren().add(messageContents);
 		});
 	}
 	
