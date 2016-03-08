@@ -41,7 +41,10 @@ public class JMXDetailsDO implements Comparable<JMXDetailsDO>{
 
 	@Override
 	public int compareTo(JMXDetailsDO o) {
-		return getDestination().compareTo(o.getDestination());
+		if(getDestination() != null) {
+			return getDestination().compareTo(o.getDestination()); 
+		}
+		return 0;
 	}
 	
 	

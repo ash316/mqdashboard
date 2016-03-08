@@ -1,8 +1,12 @@
 package au.com.ashishnayyar.mqdashboard;
 
 
+import java.util.Optional;
+
 import javax.management.openmbean.CompositeData;
 
+import au.com.ashishnayyar.mqdashboard.xml.Config;
+import au.com.ashishnayyar.mqdashboard.xml.Configs;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -10,7 +14,10 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -28,42 +35,53 @@ import javafx.scene.layout.VBox;
 
 public class DashboardController {
 	
-	@FXML private ComboBox<String> cmbEnv;
+	@FXML private ComboBox<Config> cmbEnv;
 	@FXML private TreeView<String> amqDetails;
 	@FXML private VBox mainWindow;
 	@FXML private TableView<MessageDetails> messageTable;
 	@FXML private Label messageHeader;
 	@FXML private Pane msgContents;
 	@FXML private Button purgeButton;
+	private String selectedQueue;
 	
 	private final ImageView queueIcon = new ImageView (new Image(getClass().getResourceAsStream("queue.png")));
 	
 	private JMXClient client = null;
 	
 	public DashboardController() {
+		System.out.println("Inside Constructor " + this);
 		client = new JMXClient();
-		client.connect();
 		
 	}
 	public void populateCombo() {
-		ObservableList<String> environments = FXCollections.observableArrayList();
-		environments.add("DEV");
-		environments.add("SIT");
-		environments.add("PREPROD-1");
-		environments.add("PREPROD-2");
-		environments.add("PROD-1");
-		environments.add("PROD-2");
-		cmbEnv.setValue("Select Environment");
+		ObservableList<Config> environments = FXCollections.observableArrayList();
+		Configs allConfigs = LoadConfig.getAllConfigs();
+		
+		if(!allConfigs.getConfigs().isEmpty()) {
+			for(Config config: allConfigs.getConfigs()) {
+				environments.add(config);
+			}
+		}
+		
 		cmbEnv.setItems(environments);
-		 
+		/*cmbEnv.valueProperty().addListener(new ChangeListener<String>() {
+	        @Override public void changed(ObservableValue ov, String t, String t1) {
+	            System.out.println(ov);
+	              System.out.println(t);
+	              System.out.println(t1);
+	          }    
+	      });*/
 	}
 	
 	public void connect() {
-		System.out.println(cmbEnv.getValue());
+		Config config = cmbEnv.getValue();
+		client.connect(config.getUrl());
+		System.out.println(config.getUrl());
+		populateAMQTree();
 	}
 	
 	public void populateAMQTree() {
-	
+
 		try {
 			client.discoverQueuesAndTopics();
 		} catch (Exception e) {
@@ -83,12 +101,13 @@ public class DashboardController {
         for (JMXDetailsDO str : client.getQueues()) {
             TreeItem<String> item = new TreeItem<String>(str.getDestination());
             queues.getChildren().add(item);
-            //item.getChildren().add(new TreeItem<String>("SIZE [" + str.getSize() + "]"));
         }
+        
         for (JMXDetailsDO str : client.getTopics()) {
             TreeItem<String> item = new TreeItem<String> (str.getDestination());            
             topics.getChildren().add(item);
         }
+        
         amqDetails.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<TreeItem<String>>() {
 		
         	@Override
@@ -101,6 +120,7 @@ public class DashboardController {
 				CompositeData allMessages[] = client.getAllMessages(selectedItem.getValue());
 				ObservableList<MessageDetails> messages = FXCollections.observableArrayList();
 				messageHeader.setText("ALL MESSAGES ON : " + selectedItem.getValue() + " [SIZE : " + allMessages.length +"]");
+				selectedQueue = selectedItem.getValue();
 				
 				for(CompositeData currentMessage : allMessages) {
 					MessageDetails message = new MessageDetails();
@@ -131,6 +151,18 @@ public class DashboardController {
         amqDetails.setRoot(rootItem);
 	}
 	
+	public void purgeQueue() {
+		System.out.println("selectedQueue "+ selectedQueue);
+		Alert alert = new Alert(AlertType.CONFIRMATION);
+		alert.setTitle("Confirmation Dialog");
+		alert.setHeaderText("Purge Queue ?");
+		alert.setContentText("Are you sure you want to purge "+ selectedQueue +" ? This will remove all the messages from the queue and can't be undone.");
+
+		Optional<ButtonType> result = alert.showAndWait();
+		if (result.get() == ButtonType.OK){
+			client.purgeQueue(selectedQueue);
+		} 
+	}
 	private void showMessages(ObservableList<MessageDetails> allMessages) {
 		if(!allMessages.isEmpty()) {
 			((TableColumn)messageTable.getColumns().get(0)).setCellValueFactory(new PropertyValueFactory<MessageDetails, String>("messageId"));

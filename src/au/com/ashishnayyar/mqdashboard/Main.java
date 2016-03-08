@@ -22,7 +22,7 @@ public class Main extends Application {
 			Scene scene = new Scene(root);
 			DashboardController controller = loader.<DashboardController>getController();
 			controller.populateCombo();
-			controller.populateAMQTree();
+			//controller.populateAMQTree();
 			primaryStage.setScene(scene);
 			primaryStage.show();
 			

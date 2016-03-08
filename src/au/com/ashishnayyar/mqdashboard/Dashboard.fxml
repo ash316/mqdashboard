@@ -42,7 +42,7 @@
                                     </TableView>
                                     <Label fx:id="messageHeader" layoutX="8.0" layoutY="8.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="32.0" prefWidth="891.0" text="ALL MESSAGES ON " />
                                     <Label layoutX="8.0" layoutY="332.0" prefHeight="32.0" prefWidth="500.0" text="MESSAGE CONTENTS" />
-                                    <Button fx:id="purgeButton" layoutX="901.0" layoutY="14.0" mnemonicParsing="false" text="PURGE" visible="false" />
+                                    <Button fx:id="purgeButton" layoutX="901.0" layoutY="14.0" mnemonicParsing="false" text="PURGE" visible="false" onAction="#purgeQueue" />
                                     <Pane fx:id="msgContents" layoutX="8.0" layoutY="360.0" prefHeight="403.0" prefWidth="941.0" />
                                  </children></AnchorPane>
                           </items>
