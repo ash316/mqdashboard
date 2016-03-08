@@ -22,12 +22,13 @@
                           <items>
                             <AnchorPane id="qList" minHeight="0.0" prefHeight="160.0" prefWidth="100.0" SplitPane.resizableWithParent="true">
                                  <children>
-                                    <ComboBox fx:id="cmbEnv" layoutX="3.0" layoutY="14.0" onAction="#connect" prefHeight="25.0" prefWidth="240.0" />
+                                    <ComboBox fx:id="cmbEnv" layoutX="4.0" layoutY="14.0" onAction="#connect" prefHeight="25.0" prefWidth="103.0" />
                                     <VBox layoutX="5.0" layoutY="45.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="719.0" prefWidth="284.0">
                                        <children>
-                                          <TreeView fx:id="amqDetails" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="723.0" prefWidth="284.0" />
+                                          <TreeView fx:id="amqDetails" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="320.0" prefHeight="723.0" prefWidth="284.0" />
                                        </children>
                                     </VBox>
+                                    <TextField fx:id="txtFilter" layoutX="119.0" layoutY="14.0" prefHeight="25.0" prefWidth="169.0" promptText="Filter" onKeyTyped="#filterQueues" />
                                  </children>
                               </AnchorPane>
                             <AnchorPane maxHeight="1.7976931348623157E308" minHeight="0.0" minWidth="50.0" prefHeight="790.0" prefWidth="1029.0">
@@ -42,7 +43,7 @@
                                     </TableView>
                                     <Label fx:id="messageHeader" layoutX="8.0" layoutY="8.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="32.0" prefWidth="891.0" text="ALL MESSAGES ON " />
                                     <Label layoutX="8.0" layoutY="332.0" prefHeight="32.0" prefWidth="500.0" text="MESSAGE CONTENTS" />
-                                    <Button fx:id="purgeButton" layoutX="901.0" layoutY="14.0" mnemonicParsing="false" text="PURGE" visible="false" onAction="#purgeQueue" />
+                                    <Button fx:id="purgeButton" layoutX="901.0" layoutY="14.0" mnemonicParsing="false" onAction="#purgeQueue" text="PURGE" visible="false" />
                                     <Pane fx:id="msgContents" layoutX="8.0" layoutY="360.0" prefHeight="403.0" prefWidth="941.0" />
                                  </children></AnchorPane>
                           </items>

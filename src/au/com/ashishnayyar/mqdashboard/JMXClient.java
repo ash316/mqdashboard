@@ -1,5 +1,6 @@
 package au.com.ashishnayyar.mqdashboard;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,17 +22,20 @@ public class JMXClient {
 	MBeanServerConnection connection = null;
 	List<JMXDetailsDO> queues;
 	List<JMXDetailsDO> topics;
+	JMXConnector jmxc;
 	
-	public void discoverQueuesAndTopics() throws Exception {
-		
+	public void discoverQueuesAndTopics(String filter) throws Exception {
+		if(filter == null) {
+			filter = "*";
+		}
 		ObjectName name = new ObjectName("org.apache.activemq:*");
         Set<ObjectName> amq = connection.queryNames(name,null);
         System.out.println("Total "+ amq.size());
         
         if(amq.size() > 0)  {
         	String bName = amq.iterator().next().getCanonicalName().split(",")[0];
-        	Set<ObjectName> queues =  connection.queryNames(new ObjectName(bName+",type=Broker,destinationType=Queue,destinationName=*"),null);
-         	System.out.println("Total Queues : "+ queues.size());
+        	Set<ObjectName> queues =  connection.queryNames(new ObjectName(bName+",type=Broker,destinationType=Queue,destinationName=*"+filter+"*"),null);
+         	System.out.println("Total Queues : "+ queues.size() + " on "+ bName);
          	
          	this.queues = new ArrayList<>(queues.size());
          	for(ObjectName objName: queues) {
@@ -77,14 +81,19 @@ public class JMXClient {
 			e.printStackTrace();
 		}
 	}
+	
 	public void connect(String jmxurl) {
 		try {
+			
+			if(jmxc != null) {
+				close();
+			}
 			HashMap<String, String[]> env = new HashMap();
 			String[] credentials = new String[] { "admin" , "admin" };
 			env.put("jmx.remote.credentials", credentials);
 
 			JMXServiceURL url = new JMXServiceURL(jmxurl);
-			JMXConnector jmxc = JMXConnectorFactory.connect(url, env);
+			jmxc = JMXConnectorFactory.connect(url, env);
 			connection = jmxc.getMBeanServerConnection();
 			
 			System.out.println("Successfully Connected to JMX:");
@@ -93,6 +102,13 @@ public class JMXClient {
 		}
 	}
 	
+	private void close() {
+		try {
+			jmxc.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	private JMXDetailsDO parseString(String str) {
 		//System.out.println(str);
 		String allInfo[] = str.split(",");

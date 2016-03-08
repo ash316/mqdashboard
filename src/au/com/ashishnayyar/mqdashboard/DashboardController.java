@@ -11,6 +11,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -25,6 +26,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -42,6 +44,8 @@ public class DashboardController {
 	@FXML private Label messageHeader;
 	@FXML private Pane msgContents;
 	@FXML private Button purgeButton;
+	@FXML private TextField txtFilter;
+	
 	private String selectedQueue;
 	
 	private final ImageView queueIcon = new ImageView (new Image(getClass().getResourceAsStream("queue.png")));
@@ -79,14 +83,22 @@ public class DashboardController {
 		System.out.println(config.getUrl());
 		populateAMQTree();
 	}
-	
-	public void populateAMQTree() {
 
+	public void filterQueues() {
+		if(null != txtFilter.getText() && txtFilter.getText().trim().length() >= 2) {
+			populateAMQTree();
+		}
+	}
+	private void discoverQueues() {
 		try {
-			client.discoverQueuesAndTopics();
+			client.discoverQueuesAndTopics(txtFilter.getText());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	public void populateAMQTree() {
+
+		discoverQueues();
 		
 		TreeItem<String> rootItem = new TreeItem<String> ("AMQ");
 		TreeItem<String> queues = new TreeItem<String> ("Queues");
@@ -102,11 +114,13 @@ public class DashboardController {
             TreeItem<String> item = new TreeItem<String>(str.getDestination());
             queues.getChildren().add(item);
         }
+        queues.setValue(queues.getValue() + " ["+queues.getChildren().size() +"]");
         
         for (JMXDetailsDO str : client.getTopics()) {
             TreeItem<String> item = new TreeItem<String> (str.getDestination());            
             topics.getChildren().add(item);
         }
+        topics.setValue(topics.getValue() + " ["+topics.getChildren().size() +"]");
         
         amqDetails.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<TreeItem<String>>() {
 		
@@ -179,13 +193,15 @@ public class DashboardController {
 			purgeButton.setVisible(false);
 		}
 		messageTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-			TextArea messageContents = new TextArea(newSelection.getContents());
-			
-			messageContents.setEditable(false);
-			messageContents.setPrefWidth(msgContents.getPrefWidth());
-			messageContents.setPrefHeight(msgContents.getPrefHeight());
-			
-			msgContents.getChildren().add(messageContents);
+			if(newSelection != null) {
+				TextArea messageContents = new TextArea(newSelection.getContents());
+				
+				messageContents.setEditable(false);
+				messageContents.setPrefWidth(msgContents.getPrefWidth());
+				messageContents.setPrefHeight(msgContents.getPrefHeight());
+				
+				msgContents.getChildren().add(messageContents);
+			}
 		});
 	}
 	
