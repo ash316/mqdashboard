@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import javax.management.MBeanServerConnection;
-import javax.management.Notification;
-import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
@@ -23,35 +21,50 @@ public class JMXClient {
 	List<JMXDetailsDO> queues;
 	List<JMXDetailsDO> topics;
 	JMXConnector jmxc;
+	private String brokerName;
 	
-	public void discoverQueuesAndTopics(String filter) throws Exception {
+	private void discoverBroker() throws Exception {
+		ObjectName name = new ObjectName("org.apache.activemq:type=Broker,brokerName=*");
+        Set<ObjectName> amq = connection.queryNames(name,null);
+        System.out.println("Total "+ amq.size());
+        if(amq.size() > 0)  {
+        	brokerName = amq.iterator().next().getCanonicalName();
+        }
+	}
+	
+	public void discoverTopics(String filter) throws Exception  {
+		
 		if(filter == null) {
 			filter = "*";
 		}
-		ObjectName name = new ObjectName("org.apache.activemq:*");
-        Set<ObjectName> amq = connection.queryNames(name,null);
-        System.out.println("Total "+ amq.size());
-        
-        if(amq.size() > 0)  {
-        	String bName = amq.iterator().next().getCanonicalName().split(",")[0];
-        	Set<ObjectName> queues =  connection.queryNames(new ObjectName(bName+",type=Broker,destinationType=Queue,destinationName=*"+filter+"*"),null);
-         	System.out.println("Total Queues : "+ queues.size() + " on "+ bName);
+		
+		Set<ObjectName> topics =  connection.queryNames(new ObjectName(brokerName +",destinationType=Topic,destinationName=*" + filter + "*"), null);
+     	System.out.println("Total Topics : "+ topics.size() + " on "+ brokerName);
+     	
+     	this.topics = new ArrayList<>(topics.size());
+     	
+     	for(ObjectName objName: topics) {
+     		this.topics.add(parseString(objName.getCanonicalName()));
+     	}
+	}
+	
+	public void discoverQueues(String filter) throws Exception {
+		
+		if(filter == null) {
+			filter = "*";
+		}
+		
+        Set<ObjectName> queues =  connection.queryNames(new ObjectName(brokerName +",destinationType=Queue,destinationName=*" + filter + "*"), null);
+        System.out.println("Total Queues : "+ queues.size() + " on "+ brokerName);
          	
-         	this.queues = new ArrayList<>(queues.size());
+        	this.queues = new ArrayList<>(queues.size());
+         	
          	for(ObjectName objName: queues) {
          		JMXDetailsDO jmx = parseString(objName.getCanonicalName());
          		jmx.setSize(connection.getAttribute(objName, "QueueSize").toString());
          		this.queues.add(jmx);
          	}
-         	Set<ObjectName> topics =  connection.queryNames(new ObjectName(bName+",type=Broker,destinationType=Topic,destinationName=*"),null);
-         	System.out.println("Total Topics : "+ topics.size());
          	
-         	this.topics = new ArrayList<>(topics.size());
-         	
-         	for(ObjectName objName: topics) {
-         		this.topics.add(parseString(objName.getCanonicalName()));
-         	}
-         }
 	}
 	
 	public CompositeData[] getAllMessages(String queueName) {
@@ -63,7 +76,7 @@ public class JMXClient {
 			System.out.println(allMessages.length);
 			return allMessages;
 		} catch (Exception e) {
-			System.err.println(queueName + "Item not found in the JMX Tree");
+			System.err.println(queueName + " Item not found in the JMX Tree");
 			e.printStackTrace();
 		}
 		return null;
@@ -83,11 +96,12 @@ public class JMXClient {
 	}
 	
 	public void connect(String jmxurl) {
+		
 		try {
-			
 			if(jmxc != null) {
 				close();
 			}
+			
 			HashMap<String, String[]> env = new HashMap();
 			String[] credentials = new String[] { "admin" , "admin" };
 			env.put("jmx.remote.credentials", credentials);
@@ -95,8 +109,8 @@ public class JMXClient {
 			JMXServiceURL url = new JMXServiceURL(jmxurl);
 			jmxc = JMXConnectorFactory.connect(url, env);
 			connection = jmxc.getMBeanServerConnection();
-			
 			System.out.println("Successfully Connected to JMX:");
+			discoverBroker();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -110,7 +124,6 @@ public class JMXClient {
 		}
 	}
 	private JMXDetailsDO parseString(String str) {
-		//System.out.println(str);
 		String allInfo[] = str.split(",");
 		JMXDetailsDO jmxDetailsDO = new JMXDetailsDO();
 				
@@ -130,14 +143,8 @@ public class JMXClient {
             JMXClient client = new JMXClient();
             client.connect("service:jmx:rmi:///jndi/rmi://vtuvaina013.swglg01.local:1098/karaf-root");
             
-            client.connection.addNotificationListener(new ObjectName("org.apache.activemq:type=Broker,brokerName=amq"), new NotificationListener() {
     			
-    			@Override
-    			public void handleNotification(Notification notification, Object handback) {
-    				System.out.println("Notification Received.." + notification.getType());
-    				
-    			}
-    		}, null, null);
+    			
             String domains[] = client.connection.getDomains();
             for (int i = 0; i < domains.length; i++) {
             	if(domains[i].equals("org.apache.activemq")) {
@@ -146,7 +153,7 @@ public class JMXClient {
             	}
             }
             
-            ObjectName name = new ObjectName("org.apache.activemq:*");
+            ObjectName name = new ObjectName("org.apache.activemq:type=Broker,brokerName=*");
             Set<ObjectName> amq = client.getConnection().queryNames(name,null);
             System.out.println("Total "+ amq.size());
             if(amq.size() > 0)  {

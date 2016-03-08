@@ -81,22 +81,27 @@ public class DashboardController {
 		Config config = cmbEnv.getValue();
 		client.connect(config.getUrl());
 		System.out.println(config.getUrl());
-		populateAMQTree();
+		populateAMQTree(null);
 	}
 
 	public void filterQueues() {
-		if(null != txtFilter.getText() && txtFilter.getText().trim().length() >= 2) {
-			populateAMQTree();
+		if(txtFilter.getText().trim().equals("")) {
+			populateAMQTree(null);
+		} else if(txtFilter.getText().trim().length() >= 2) {
+			populateAMQTree(txtFilter.getText().trim());
 		}
 	}
+	
 	private void discoverQueues() {
 		try {
-			client.discoverQueuesAndTopics(txtFilter.getText());
+			client.discoverQueues(txtFilter.getText());
+			client.discoverTopics(txtFilter.getText());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	public void populateAMQTree() {
+	
+	public void populateAMQTree(String filter) {
 
 		discoverQueues();
 		
@@ -120,6 +125,7 @@ public class DashboardController {
             TreeItem<String> item = new TreeItem<String> (str.getDestination());            
             topics.getChildren().add(item);
         }
+        
         topics.setValue(topics.getValue() + " ["+topics.getChildren().size() +"]");
         
         amqDetails.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<TreeItem<String>>() {
@@ -128,25 +134,27 @@ public class DashboardController {
 		public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> oldValue,
 				TreeItem<String> newValue) {
 			TreeItem<String> selectedItem = newValue;
-			
-			if(selectedItem != null) {
-				System.out.println("Selected Text : " + selectedItem.getValue());
-				CompositeData allMessages[] = client.getAllMessages(selectedItem.getValue());
-				ObservableList<MessageDetails> messages = FXCollections.observableArrayList();
-				messageHeader.setText("ALL MESSAGES ON : " + selectedItem.getValue() + " [SIZE : " + allMessages.length +"]");
-				selectedQueue = selectedItem.getValue();
-				
-				for(CompositeData currentMessage : allMessages) {
-					MessageDetails message = new MessageDetails();
-					message.setContents(currentMessage.get("Text").toString());
-					message.setMessageId(currentMessage.get("JMSMessageID").toString());
-					message.setTimeStamp(currentMessage.get("JMSTimestamp").toString());
-					message.setPriority(currentMessage.get("JMSPriority").toString());
-					message.setExpiration(currentMessage.get("JMSExpiration").toString());
-					messages.add(message);
+			if(newValue != null && newValue.isLeaf()) {
+				if(selectedItem != null) {
+					System.out.println("About to get all messages on: " + selectedItem.getValue());
+					CompositeData allMessages[] = client.getAllMessages(selectedItem.getValue());
+					ObservableList<MessageDetails> messages = FXCollections.observableArrayList();
+					messageHeader.setText("ALL MESSAGES ON : " + selectedItem.getValue() + " [SIZE : " + allMessages.length +"]");
+					selectedQueue = selectedItem.getValue();
+					
+					for(CompositeData currentMessage : allMessages) {
+						MessageDetails message = new MessageDetails();
+						message.setContents(currentMessage.get("Text").toString());
+						message.setMessageId(currentMessage.get("JMSMessageID").toString());
+						message.setTimeStamp(currentMessage.get("JMSTimestamp").toString());
+						message.setPriority(currentMessage.get("JMSPriority").toString());
+						message.setExpiration(currentMessage.get("JMSExpiration").toString());
+						messages.add(message);
+					}
+					showMessages(messages);				
 				}
-				showMessages(messages);				
 			}
+			
             
 		}
 
@@ -156,7 +164,7 @@ public class DashboardController {
         refresh.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-            	populateAMQTree();
+            	populateAMQTree(null);
             }
         });
         
