@@ -17,10 +17,11 @@ public class Main extends Application {
 			VBox root = (VBox) loader.load();
 
 			Scene scene = new Scene(root);
+			scene.getStylesheets().add("application.css");
 			DashboardController controller = loader.<DashboardController>getController();
 			controller.populateCombo();
-			//controller.populateAMQTree();
 			primaryStage.setScene(scene);
+			primaryStage.setTitle("AMQ Explorer");
 			primaryStage.show();
 			
 		} catch(Exception e) {

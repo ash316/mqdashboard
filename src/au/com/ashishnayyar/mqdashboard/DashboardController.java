@@ -11,10 +11,10 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -23,6 +23,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -34,6 +35,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 public class DashboardController {
 	
@@ -48,7 +50,8 @@ public class DashboardController {
 	
 	private String selectedQueue;
 	
-	private final ImageView queueIcon = new ImageView (new Image(getClass().getResourceAsStream("queue.png")));
+	private final ImageView queueIcon = new ImageView (new Image(getClass().getResourceAsStream("q.png")));
+	private final ImageView topicIcon = new ImageView (new Image(getClass().getResourceAsStream("t.png")));
 	
 	private JMXClient client = null;
 	
@@ -82,6 +85,8 @@ public class DashboardController {
 		client.connect(config.getUrl());
 		System.out.println(config.getUrl());
 		populateAMQTree(null);
+		//Set the title as per Env
+		((Stage)mainWindow.getScene().getWindow()).setTitle(cmbEnv.getValue().getName());
 	}
 
 	public void filterQueues() {
@@ -106,8 +111,8 @@ public class DashboardController {
 		discoverQueues();
 		
 		TreeItem<String> rootItem = new TreeItem<String> ("AMQ");
-		TreeItem<String> queues = new TreeItem<String> ("Queues");
-		TreeItem<String> topics = new TreeItem<String> ("Topics");
+		TreeItem<String> queues = new TreeItem<String> ("Queues", queueIcon);
+		TreeItem<String> topics = new TreeItem<String> ("Topics", topicIcon);
 		
 		rootItem.getChildren().add(queues);
 		rootItem.getChildren().add(topics);
@@ -115,6 +120,7 @@ public class DashboardController {
         rootItem.setExpanded(true);
         queues.setExpanded(true);
         
+        //, new ImageView (new Image(getClass().getResourceAsStream("t.png")))
         for (JMXDetailsDO str : client.getQueues()) {
             TreeItem<String> item = new TreeItem<String>(str.getDestination());
             queues.getChildren().add(item);
@@ -141,7 +147,6 @@ public class DashboardController {
 					ObservableList<MessageDetails> messages = FXCollections.observableArrayList();
 					messageHeader.setText("ALL MESSAGES ON : " + selectedItem.getValue() + " [SIZE : " + allMessages.length +"]");
 					selectedQueue = selectedItem.getValue();
-					
 					for(CompositeData currentMessage : allMessages) {
 						MessageDetails message = new MessageDetails();
 						message.setContents(currentMessage.get("Text").toString());
@@ -200,6 +205,8 @@ public class DashboardController {
 		} else {
 			purgeButton.setVisible(false);
 		}
+		
+		messageTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		messageTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
 			if(newSelection != null) {
 				TextArea messageContents = new TextArea(newSelection.getContents());
@@ -211,6 +218,7 @@ public class DashboardController {
 				msgContents.getChildren().add(messageContents);
 			}
 		});
+		
 	}
 	
 	public static class MessageDetails {
